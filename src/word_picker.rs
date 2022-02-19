@@ -1,6 +1,7 @@
 use std::iter::{Rev, Take};
 use std::slice::Iter;
 
+use arrayvec::ArrayVec;
 use log::trace;
 
 use crate::game::GameCell;
@@ -14,6 +15,7 @@ pub struct HardModeWordPicker {
 }
 
 impl HardModeWordPicker {
+    /// Create a new hard-mode (solutions must be used) word picker given a dictionary
     pub fn new<S: AsRef<str>, D: IntoIterator<Item = S>>(dictionary: D) -> Self {
         let remaining_words = Vec::from_iter(
             dictionary
@@ -27,16 +29,36 @@ impl HardModeWordPicker {
 
         let mut words = Self { remaining_words };
 
-        // Sort words with most unique characters towards end
+        // Sort words with most unique letters towards the end
         words
             .remaining_words
-            .sort_by_cached_key(|word| unique_letters_per_word(word));
+            .sort_by_cached_key(|word| unique_letter_count_per_word(word));
 
         words
     }
+
+    pub fn number_of_words_containing_letter(&self, letter: char) -> usize {
+        self.remaining_words
+            .iter()
+            .filter(|word| word.contains(letter))
+            .count()
+    }
+
+    pub fn letter_frequencies(&self) -> [usize; ALPHA_LEN] {
+        let mut frequencies: ArrayVec<_, ALPHA_LEN> = ArrayVec::new();
+        for letter in ALPHABET {
+            frequencies.push(self.number_of_words_containing_letter(letter));
+        }
+
+        frequencies.into_inner().unwrap()
+    }
+
+    /// How many potential solutions remain
     pub fn remaining(&self) -> usize {
         self.remaining_words.len()
     }
+
+    /// Remove words based on a turn
     pub fn take_turn(&mut self, turn: Turn) {
         for (index, &GameCell { reply, letter }) in turn.iter().enumerate() {
             match reply {
@@ -174,8 +196,13 @@ impl HardModeWordPicker {
     }
 }
 
-pub(crate) fn unique_letters_per_word(word: &str) -> usize {
-    const ALPHA_LEN: usize = 26;
+pub(crate) const ALPHA_LEN: usize = 26;
+pub(crate) const ALPHABET: [char; ALPHA_LEN] = [
+    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's',
+    't', 'u', 'v', 'w', 'x', 'y', 'z',
+];
+
+fn unique_letters_per_word(word: &str) -> [u8; ALPHA_LEN] {
     let mut seen = [0u8; ALPHA_LEN];
 
     debug_assert_eq!(
@@ -190,8 +217,14 @@ pub(crate) fn unique_letters_per_word(word: &str) -> usize {
             "illegal letter in unique_letters_per_word"
         );
         let letter_index = ((c as u8) - b'a') as usize;
-        seen[letter_index] = 1;
+        seen[letter_index] += 1;
     }
+
+    seen
+}
+
+fn unique_letter_count_per_word(word: &str) -> usize {
+    let seen = unique_letters_per_word(word);
 
     seen.into_iter().sum::<u8>() as usize
 }

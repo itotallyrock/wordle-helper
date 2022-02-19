@@ -24,6 +24,8 @@ struct Args {
     dictionary: Option<PathBuf>,
     #[clap(short, long, arg_enum, value_name = "LEVEL")]
     log_level: Option<MyLogLevel>,
+    #[clap(long = "hide-freq")]
+    hide_letter_frequency: bool,
 }
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Debug, Copy, Clone, ArgEnum)]
@@ -64,6 +66,7 @@ fn main() {
     let Args {
         log_level,
         dictionary,
+        hide_letter_frequency,
     } = Args::parse();
 
     if setup_logger(log_level).is_err() {
@@ -71,6 +74,6 @@ fn main() {
         return;
     }
 
-    let _ = Engine::new(dictionary).start();
+    let _ = Engine::new(dictionary, !hide_letter_frequency).start();
     debug!("successfully exited");
 }

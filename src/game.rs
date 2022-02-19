@@ -16,13 +16,12 @@ pub type Guess = ArrayString<NUM_LETTERS>;
 pub enum Reply {
     /// Letter matches exact position in solution (Green)
     Success,
-    /// Letter does not exist in solution (Gray)
+    /// Letter does not exist in this solution (Gray)
     ///
-    /// NOTE: letter occurs multiple times and has already filled every solution letter slot
+    /// If a repeated letter, a missed Letter can still be a part of solution.
     Miss,
     /// Letter exists somewhere in the solution but not here (Yellow)
-    ///
-    /// NOTE: we already know where this letter belongs (from a previous `Success`) but we didnt guess with it in the correct slot
+    /// Can also mean we already know where this letter belongs (from a previous `Success`) but we didnt guess with it in the correct slot (still narrows potential repeats)
     Partial,
 }
 

@@ -1,3 +1,4 @@
+use std::cmp::Reverse;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
@@ -6,7 +7,7 @@ use arrayvec::ArrayVec;
 use log::{debug, info, trace};
 
 use crate::parser::{Parser, ReadTurnFlags};
-use crate::word_picker::HardModeWordPicker;
+use crate::word_picker::{HardModeWordPicker, ALPHABET, ALPHA_LEN};
 use crate::{DEFAULT_WORD_LIST, MAX_GUESSES};
 
 /// Maximum number of potential solution words to present after a turn
@@ -19,11 +20,12 @@ pub struct Exit;
 pub struct Engine {
     word_list: Vec<String>,
     parser: Parser,
+    show_frequency: bool,
 }
 
 impl Engine {
     /// Create a new engine, can be given a path to a dictionary text file
-    pub fn new(dictionary_path: Option<PathBuf>) -> Self {
+    pub fn new(dictionary_path: Option<PathBuf>, show_frequency: bool) -> Self {
         debug!(
             "initializing engine with {}",
             if let Some(path) = &dictionary_path {
@@ -46,6 +48,7 @@ impl Engine {
 
         Self {
             word_list,
+            show_frequency,
             parser: Parser::new(),
         }
     }
@@ -79,9 +82,15 @@ impl Engine {
                 if word_picker.remaining() == 0 {
                     break;
                 }
+
+                if self.show_frequency {
+                    self.print_letter_frequencies(&word_picker);
+                }
             }
         }
     }
+
+    /// Print the top [BEST_WORDS_LEN] guesses
     fn print_best_guesses(&self, word_picker: &HardModeWordPicker) {
         const BEST_GUESS_SEPARATOR: &str = ", ";
 
@@ -103,5 +112,24 @@ impl Engine {
         } else {
             println!("0/{} Words remaining - Restarting", self.word_list.len());
         }
+    }
+
+    /// Print how many remaining words contain any given letter
+    fn print_letter_frequencies(&self, word_picker: &HardModeWordPicker) {
+        let mut letter_frequencies = ALPHABET
+            .iter()
+            .copied()
+            .zip(word_picker.letter_frequencies().into_iter())
+            .filter(|&(_, freq)| freq > 0)
+            .collect::<ArrayVec<_, ALPHA_LEN>>();
+        letter_frequencies.sort_by_key(|&(_, frequency)| Reverse(frequency));
+        let letter_frequencies = letter_frequencies
+            .into_iter()
+            .map(|(letter, freq)| format!("{}: {}", letter.to_ascii_uppercase(), freq))
+            .collect::<ArrayVec<_, ALPHA_LEN>>();
+
+        let letter_frequencies = letter_frequencies.join(" - ");
+
+        println!("Frequencies: {}", letter_frequencies);
     }
 }
