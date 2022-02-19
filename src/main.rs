@@ -1,31 +1,20 @@
 #![feature(never_type)]
+#![feature(stdio_locked)]
 
-use std::borrow::Borrow;
-use std::collections::BTreeSet;
-use std::fs::File;
-use std::io::{stdin, stdout, BufRead, BufReader, Lines, Read, Stdin, StdinLock, Write};
-use std::iter::Flatten;
-use std::mem::transmute;
 use std::path::PathBuf;
-use std::sync::Mutex;
 
 use clap::{ArgEnum, Parser};
-use log::{debug, info, warn, LevelFilter};
+use log::{debug, LevelFilter};
 use simple_logger::SimpleLogger;
-
-use parser::{REPLY_MISS, REPLY_PARTIAL, REPLY_SUCCESS};
 
 use crate::default_word_list::DEFAULT_WORD_LIST;
 use crate::engine::Engine;
 use crate::game::{MAX_GUESSES, NUM_LETTERS};
-use crate::word_picker::HardModeWordPicker;
 
-mod cell;
 mod default_word_list;
 mod engine;
 mod game;
 mod parser;
-mod turn;
 mod word_picker;
 
 #[derive(Parser, Debug)]
@@ -72,9 +61,16 @@ fn setup_logger(log_level: Option<MyLogLevel>) -> Result<(), FailedToStartLogger
 }
 
 fn main() {
-    let args: Args = Args::parse();
+    let Args {
+        log_level,
+        dictionary,
+    } = Args::parse();
 
-    setup_logger(args.log_level);
+    if let Err(_) = setup_logger(log_level) {
+        eprintln!("failed to start logger");
+        return;
+    }
 
-    Engine::new(args.dictionary).start();
+    Engine::new(dictionary).start();
+    debug!("successfully exited");
 }

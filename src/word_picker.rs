@@ -1,11 +1,13 @@
-use crate::cell::GameCell;
-use crate::engine::Reply;
-use crate::turn::Turn;
-use crate::{MAX_GUESSES, NUM_LETTERS};
-use arrayvec::ArrayVec;
-use log::trace;
 use std::iter::{Rev, Take};
 use std::slice::Iter;
+
+use arrayvec::ArrayVec;
+use log::trace;
+
+use crate::game::GameCell;
+use crate::game::Reply;
+use crate::game::Turn;
+use crate::{MAX_GUESSES, NUM_LETTERS};
 
 #[derive(Debug)]
 pub struct HardModeWordPicker {
@@ -41,8 +43,7 @@ impl HardModeWordPicker {
         self.remaining_words.len()
     }
     pub fn take_turn(&mut self, turn: Turn) {
-        let Turn(guess_cells) = turn;
-        for (index, &GameCell { reply, letter }) in guess_cells.iter().enumerate() {
+        for (index, &GameCell { reply, letter }) in turn.iter().enumerate() {
             match reply {
                 Reply::Success => {
                     self.remove_words_without_letter_in_position(letter, index);
@@ -69,7 +70,7 @@ impl HardModeWordPicker {
                     // TODO: Make sure this check doesnt need to factor in the index of the success/partial
                     if matchable_cells
                         .iter()
-                        .any(|matchable| guess_cells.contains(matchable))
+                        .any(|matchable| turn.contains(matchable))
                     {
                         // This letter shows up elsewhere in this word as a partial/hit so we can only remove it in this position
                         self.remove_words_with_letter_in_position(letter, index);
@@ -172,9 +173,6 @@ impl HardModeWordPicker {
             self.remaining_words
         );
     }
-    pub fn pick_best_word(&mut self) -> Option<String> {
-        self.remaining_words.pop()
-    }
     pub fn top_10_words(&self) -> Take<Rev<Iter<'_, String>>> {
         self.remaining_words.iter().rev().take(10)
     }
@@ -192,10 +190,10 @@ pub(crate) fn unique_letters_per_word(word: &str) -> usize {
 
     for c in word.chars() {
         debug_assert!(
-            c >= 'a' && c <= 'z',
+            ('a'..='z').contains(&c),
             "illegal letter in unique_letters_per_word"
         );
-        let letter_index = ((c as u8) - ('a' as u8)) as usize;
+        let letter_index = ((c as u8) - b'a') as usize;
         seen[letter_index] = 1;
     }
 
