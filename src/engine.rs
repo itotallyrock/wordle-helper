@@ -120,7 +120,7 @@ impl Engine {
             .iter()
             .copied()
             .zip(word_picker.letter_frequencies().into_iter())
-            .filter(|&(_, freq)| freq > 0)
+            .filter(|&(_, freq)| freq > 0 && freq != word_picker.remaining())
             .collect::<ArrayVec<_, ALPHA_LEN>>();
         letter_frequencies.sort_by_key(|&(_, frequency)| Reverse(frequency));
         let letter_frequencies = letter_frequencies
