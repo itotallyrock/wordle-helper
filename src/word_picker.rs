@@ -49,7 +49,6 @@ impl HardModeWordPicker {
                     self.remove_words_not_containing(letter);
                     // We also know this position isn't correct for this letter
                     self.remove_words_with_letter_in_position(letter, index);
-                    // TODO: Maybe do some extra logic here ff we already know this letter exists in the word or something...
                 }
                 Reply::Miss => {
                     // Check if this is a matched repeated letter; meaning, if there is another occurrence that is a success/partial

@@ -2,9 +2,9 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 
+use arrayvec::ArrayVec;
 use log::{debug, info, trace};
 
-use crate::game::Turn;
 use crate::parser::{Parser, ReadTurnFlags};
 use crate::word_picker::HardModeWordPicker;
 use crate::{DEFAULT_WORD_LIST, MAX_GUESSES};
@@ -24,7 +24,14 @@ pub struct Engine {
 impl Engine {
     /// Create a new engine, can be given a path to a dictionary text file
     pub fn new(dictionary_path: Option<PathBuf>) -> Self {
-        debug!("initializing engine via dictionary path");
+        debug!(
+            "initializing engine with {}",
+            if let Some(path) = &dictionary_path {
+                path.to_str().unwrap_or("<non-unicode dictionary path>")
+            } else {
+                "default dictionary"
+            }
+        );
         let word_list: Vec<_> = if let Some(dictionary_path) = dictionary_path {
             let file = File::open(dictionary_path).expect("unable to read dictionary");
             let reader = BufReader::new(file);
@@ -51,7 +58,7 @@ impl Engine {
             trace!("created fresh word picker from dictionary");
 
             println!(
-                "Starting new game - {} Potential Solutions",
+                "\nStarting new game - {} Potential Solutions",
                 self.word_list.len()
             );
 
@@ -64,26 +71,37 @@ impl Engine {
                         ReadTurnFlags::Win => break,
                     },
                 }?;
-                self.take_turn(turn, &mut word_picker);
+                // Remove words from word picker based on turn
+                word_picker.take_turn(turn);
+                self.print_best_guesses(&word_picker);
+
+                // If no words are left the game is scratch (incorrect dictionary or invalid user input)
+                if word_picker.remaining() == 0 {
+                    break;
+                }
             }
         }
     }
-    fn take_turn(&mut self, turn: Turn, word_picker: &mut HardModeWordPicker) {
-        // Remove words from word picker based on turn
-        word_picker.take_turn(turn);
+    fn print_best_guesses(&self, word_picker: &HardModeWordPicker) {
+        const BEST_GUESS_SEPARATOR: &str = ", ";
 
-        // TODO: try to optimize this
-        let best_guesses = word_picker
-            .top_10_words()
-            .cloned()
-            .collect::<Vec<_>>()
-            .join(", ");
         let remaining = word_picker.remaining();
-        println!(
-            "{}/{} Best Guesses: {}",
-            BEST_WORDS_LEN.min(remaining),
-            remaining,
-            best_guesses
-        );
+        if remaining > 0 {
+            // Print out best guesses
+            let best_guesses = word_picker
+                .top_10_words()
+                .cloned()
+                .collect::<ArrayVec<_, 10>>()
+                .join(BEST_GUESS_SEPARATOR);
+
+            println!(
+                "{}/{} Best Guesses: {}",
+                BEST_WORDS_LEN.min(remaining),
+                remaining,
+                best_guesses
+            );
+        } else {
+            println!("0/{} Words remaining - Restarting", self.word_list.len());
+        }
     }
 }
