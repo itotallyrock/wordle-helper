@@ -60,7 +60,7 @@ impl Parser {
     }
 
     fn read_guess(&mut self) -> Result<Guess, Exit> {
-        const PROMPT: &'static str = "input guess";
+        const PROMPT: &str = "input guess";
         loop {
             let input = self.read_input("input", PROMPT)?;
 

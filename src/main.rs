@@ -66,7 +66,7 @@ fn main() {
         dictionary,
     } = Args::parse();
 
-    if let Err(_) = setup_logger(log_level) {
+    if setup_logger(log_level).is_err() {
         eprintln!("failed to start logger");
         return;
     }
