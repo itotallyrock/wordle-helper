@@ -78,10 +78,7 @@ impl Parser {
             if input.to_ascii_lowercase() == self.winning_reply {}
 
             if input.chars().all(|c| c.is_ascii_alphabetic()) {
-                let guess = input
-                    .try_into()
-                    .expect("read_input allowed illegal character amount");
-                break Ok(guess);
+                break Ok(input);
             } else {
                 eprintln!("illegal input: expected alphabetical characters");
             }
