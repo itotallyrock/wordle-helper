@@ -27,7 +27,7 @@ pub enum Reply {
 }
 
 /// The answers given for a submitted attempt
-pub type Response = ArrayVec<Reply, 5>;
+pub type Response = ArrayVec<Reply, NUM_LETTERS>;
 
 /// A single cell (letter) after a guess has been replied to
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]

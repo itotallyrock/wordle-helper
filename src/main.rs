@@ -71,6 +71,6 @@ fn main() {
         return;
     }
 
-    Engine::new(dictionary).start();
+    let _ = Engine::new(dictionary).start();
     debug!("successfully exited");
 }

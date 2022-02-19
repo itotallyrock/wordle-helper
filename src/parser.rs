@@ -10,20 +10,31 @@ const REPLY_SUCCESS: char = '+';
 const REPLY_MISS: char = '.';
 const REPLY_PARTIAL: char = '-';
 
+pub enum ReadTurnFlags {
+    Exit(Exit),
+    Win,
+}
+
 pub struct Parser {
     lines: Flatten<Lines<StdinLock<'static>>>,
+    winning_reply: String,
 }
 
 impl Parser {
     pub fn new() -> Self {
         Self {
             lines: stdin_locked().lines().flatten(),
+            winning_reply: String::from(REPLY_SUCCESS).repeat(NUM_LETTERS),
         }
     }
 }
 
 impl Parser {
-    fn read_input(&mut self, input_name: &'static str, prompt: &str) -> Result<Guess, Exit> {
+    fn read_input(
+        &mut self,
+        input_name: &'static str,
+        prompt: &str,
+    ) -> Result<Guess, ReadTurnFlags> {
         loop {
             print!("{}: ", prompt);
             stdout()
@@ -40,7 +51,8 @@ impl Parser {
             let guess = input.trim().to_ascii_lowercase();
 
             match guess.as_str() {
-                "exit" | "quit" | "q" => break Err(Exit),
+                "exit" | "quit" | "q" => break Err(ReadTurnFlags::Exit(Exit)),
+                _ if guess == self.winning_reply => break Err(ReadTurnFlags::Win),
                 _ => match Guess::from(&guess) {
                     // break Ok(Guess::from(&guess))
                     Ok(guess) => {
@@ -59,10 +71,11 @@ impl Parser {
         }
     }
 
-    fn read_guess(&mut self) -> Result<Guess, Exit> {
+    fn read_guess(&mut self) -> Result<Guess, ReadTurnFlags> {
         const PROMPT: &str = "input guess";
         loop {
             let input = self.read_input("input", PROMPT)?;
+            if input.to_ascii_lowercase() == self.winning_reply {}
 
             if input.chars().all(|c| c.is_ascii_alphabetic()) {
                 let guess = input
@@ -75,7 +88,7 @@ impl Parser {
         }
     }
 
-    fn read_reply(&mut self) -> Result<Response, Exit> {
+    fn read_reply(&mut self) -> Result<Response, ReadTurnFlags> {
         let prompt = format!(
             "input reply (miss: '{}', hit: '{}' partial: '{}')",
             REPLY_MISS, REPLY_SUCCESS, REPLY_PARTIAL
@@ -106,7 +119,7 @@ impl Parser {
         }
     }
 
-    pub fn read_turn(&mut self) -> Result<Turn, Exit> {
+    pub fn read_turn(&mut self) -> Result<Turn, ReadTurnFlags> {
         let guess = self.read_guess()?;
         let response = self.read_reply()?;
         let mut turn: Turn = Default::default();
